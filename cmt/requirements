@@ -1,0 +1,51 @@
+package captTrans
+
+# This is required for the documentation.
+manager Clark McGrew <clark.mcgrew@stonybrook.edu>
+author Clark McGrew <clark.mcgrew@stonybrook.edu>
+
+# The packages used by this one.  Only direct dependencies should be
+# included. 
+use captEvent
+use testBase
+use captainPolicy 
+
+# Build the documentation.
+document doxygen doxygen -group=documentation *.cxx *.hxx ../doc/*.dox
+
+# Build the version file.
+document version version *.cxx *.hxx *_LinkDef.h
+
+# Build the registration prototype.
+document register register 
+macro_append register_dependencies " version "
+
+# Build all of the ROOT dictionaries.
+document linkdef linkdef *.hxx *_LinkDef.h
+macro_append linkdef_dependencies " register "
+
+# Build information used by packages that use this one.
+macro captTrans_cppflags " -DCAPTTRANS_USED "
+macro captTrans_linkopts " -L$(CAPTTRANSROOT)/$(captTrans_tag) "
+macro_append captTrans_linkopts " -lcaptTrans "
+macro captTrans_stamps " $(captTransstamp) $(linkdefstamp) "
+
+# The paths to find this library and it's executables
+path_remove LD_LIBRARY_PATH "$(CAPTTRANSROOT)" 
+path_prepend LD_LIBRARY_PATH "$(CAPTTRANSROOT)/$(captTrans_tag)"
+
+path_remove PATH "$(CAPTTRANSROOT)"
+path_prepend PATH "$(CAPTTRANSROOT)/$(captTrans_tag)"
+
+# Build the library for this package.
+library captTrans *.cxx *.hxx $(bin)dict/*.cxx
+macro_append captTrans_dependencies " linkdef "
+
+# Build the applications for this package.
+
+application rawDumpNevis ../app/rawDumpNevis.cxx
+macro_append rawDumpNevis_dependencies " captTrans "
+
+application capt-trans ../app/capt-trans.cxx
+macro_append capt-trans_dependencies " captTrans "
+
