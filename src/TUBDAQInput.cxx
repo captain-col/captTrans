@@ -10,7 +10,7 @@
 #include "TManager.hxx"
 #include "TPulseDigit.hxx"
 #include "TInputManager.hxx"
-#include "TMCChannelId.hxx"
+#include "TTPCChannelId.hxx"
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/map.hpp>
@@ -108,21 +108,31 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
          crate != crates.end();
          ++crate) {
         crateMap::key_type crate_header = crate->first;
+        int crateNum = crate_header.getCrateNumber();
         crateMap::mapped_type crate_data = crate->second;
         cardMap cards = crate_data.getCardMap();
         for (cardMap::iterator card = cards.begin();
              card != cards.end();
              ++card) {
             cardMap::key_type card_header = card->first;
+            int cardNum = card_header.getIDAndModuleWord();  // PROBABLY WRONG
             cardMap::mapped_type card_data = card->second;
             channelMap channels = card_data.getChannelMap();
             for (channelMap::iterator channel = channels.begin();
                  channel != channels.end();
                  ++channel) {
-                int nSamples = channel->second.getChannelDataSize()/sizeof(UShort_t);
+                int channelNum = channel->second.getChannelNumber();
+                int nSamples
+                    = channel->second.getChannelDataSize()/sizeof(UShort_t);
                 Char_t* samples = channel->second.getChannelDataPtr();
-                UShort_t sample;
+
+                CP::TTPCChannelId chanId(crateNum,cardNum,channelNum);
+                // Read the ADC data.  This could be more efficient, but as
+                // long as it's not a bottle neck, I'm keeping it bog simple.
+                CP::TPulseDigit::Vector adc;
+                adc.clear();
                 for (int i=0; i<nSamples; ++i) {
+                    UShort_t sample;
                     // A copy is used since the ADC samples (uint16_t) are
                     // saved in an array of uint8_t and may not be aligned
                     // with shorts.  The copy works even if the alignment is
@@ -130,7 +140,12 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
                     std::copy(samples+(i)*sizeof(UShort_t),
                               samples+(i+1)*sizeof(UShort_t),
                               (char*)(&sample));
+                    adc.push_back(sample);
                 }
+
+                // Create the digit.
+                CP::TPulseDigit* digit = new TPulseDigit(chanId,0, adc);
+                drift->push_back(digit);
             }
         }
     }
