@@ -9,6 +9,10 @@ author Clark McGrew <clark.mcgrew@stonybrook.edu>
 use captEvent
 use testBase
 use captainPolicy 
+use Boost * LCG_Interfaces
+
+# Set the include path
+include_dirs $(CAPTTRANSROOT)/src/uboone
 
 # Build the documentation.
 document doxygen doxygen -group=documentation *.cxx *.hxx ../doc/*.dox
@@ -28,6 +32,8 @@ macro_append linkdef_dependencies " register "
 macro captTrans_cppflags " -DCAPTTRANS_USED "
 macro captTrans_linkopts " -L$(CAPTTRANSROOT)/$(captTrans_tag) "
 macro_append captTrans_linkopts " -lcaptTrans "
+macro_append captTrans_linkopts " $(Boost_linkopts) " 
+macro_append captTrans_linkopts " $(Boost_linkopts_serialization) " 
 macro captTrans_stamps " $(captTransstamp) $(linkdefstamp) "
 
 # The paths to find this library and it's executables
@@ -38,7 +44,9 @@ path_remove PATH "$(CAPTTRANSROOT)"
 path_prepend PATH "$(CAPTTRANSROOT)/$(captTrans_tag)"
 
 # Build the library for this package.
-library captTrans *.cxx *.hxx $(bin)dict/*.cxx
+library captTrans *.cxx *.hxx $(bin)dict/*.cxx \
+	uboone/datatypes/*.cpp uboone/datatypes/*.h
+
 macro_append captTrans_dependencies " linkdef "
 
 # Build the applications for this package.
@@ -49,3 +57,5 @@ macro_append rawDumpNevis_dependencies " captTrans "
 application capt-trans ../app/capt-trans.cxx
 macro_append capt-trans_dependencies " captTrans "
 
+application testWriteEventRecord ../test/testWriteEventRecord.cxx
+macro_append testWriteEventRecord_dependencies " captTrans "
