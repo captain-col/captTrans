@@ -1,5 +1,5 @@
-#ifndef _UBOONETYPES_CRATEDATA_H
-#define _UBOONETYPES_CRATEDATA_H
+#ifndef _UBOONETYPES_CRATEDATAPMT_H
+#define _UBOONETYPES_CRATEDATAPMT_H
 #include <memory>
 #include <map>
 #include <algorithm>
@@ -11,12 +11,13 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/binary_object.hpp>
+#include <boost/serialization/map.hpp>
 
 #include "constants.h"
 #include "share/boonetypes.h"
 #include "eventHeaderTrailer.h"
-#include "cardHeader.h"
-#include "cardData.h"
+#include "cardHeaderPMT.h"
+#include "cardDataPMT.h"
 
 namespace gov {
 namespace fnal {
@@ -29,20 +30,20 @@ using namespace gov::fnal::uboone;
  *  Note: this is the serialization class that handles the data.
  ***/
 
-struct compareCardHeader {
-  bool operator() ( cardHeader lhs, cardHeader rhs) const
+struct compareCardHeaderPMT {
+  bool operator() ( cardHeaderPMT lhs, cardHeaderPMT rhs) const
   { return lhs.getModule() < rhs.getModule(); }
 };
 
-class crateData {
+class crateDataPMT {
 
  public:
   static const uint8_t DAQ_version_number = gov::fnal::uboone::datatypes::constants::VERSION;
   
-  crateData()
+  crateDataPMT()
     { crate_data_ptr.reset(); crate_data_size=0; crateData_IO_mode = IO_GRANULARITY_CRATE;}
 
-  crateData(std::shared_ptr<char> data_ptr, size_t size)
+  crateDataPMT(std::shared_ptr<char> data_ptr, size_t size)
     { crate_data_ptr.swap(data_ptr); crate_data_size=size; crateData_IO_mode = IO_GRANULARITY_CRATE; }
 
   size_t getCrateDataSize() const {return crate_data_size;}
@@ -55,13 +56,10 @@ class crateData {
   void updateIOMode(uint8_t);
   uint8_t getIOMode() { return crateData_IO_mode; }
 
-  void insertCard(cardHeader,cardData);
-  
-  void decompress();
+  void insertCard(cardHeaderPMT,cardDataPMT);
 
-  typedef std::map<cardHeader,cardData,compareCardHeader> cardMap_t;
-  cardMap_t getCardMap() { return card_map;}
-  const cardMap_t& getCardMap() const { return card_map;}
+  typedef std::map<cardHeaderPMT,cardDataPMT,compareCardHeaderPMT> cardMap_t;
+  const cardMap_t& getCardMap() const { return card_map; }
 
  private:
   uint8_t crateData_IO_mode;
@@ -69,8 +67,8 @@ class crateData {
   std::shared_ptr<char> crate_data_ptr;
   size_t crate_data_size;
   
-  eventHeader event_header;
-  cardMap_t   card_map;
+  eventHeader  event_header;
+  cardMap_t    card_map;
   eventTrailer event_trailer;
 
   friend class boost::serialization::access;
@@ -136,7 +134,7 @@ class crateData {
 }  // end of namespace gov
 
 // This MACRO must be outside any namespaces.
-BOOST_CLASS_VERSION(gov::fnal::uboone::datatypes::crateData, gov::fnal::uboone::datatypes::constants::VERSION)    
+BOOST_CLASS_VERSION(gov::fnal::uboone::datatypes::crateDataPMT, gov::fnal::uboone::datatypes::constants::VERSION)    
 
 #endif /* #ifndef BOONETYPES_H */
 

@@ -36,20 +36,24 @@ class channelData {
     { channel_data_ptr.swap(data_ptr); channel_data_size=size; 
       channel_data_header = header; channel_data_trailer = trailer; }
 
-  char* getChannelDataPtr() { return channel_data_ptr.get(); }
+  char*       getChannelDataPtr()       { return channel_data_ptr.get(); }
+  const char* getChannelDataPtr() const { return channel_data_ptr.get(); }
+  
   void setChannelDataPtr(char* ptr) {channel_data_ptr.reset(ptr);}
 
-  size_t getChannelDataSize() {return channel_data_size;}
+  size_t getChannelDataSize() const {return channel_data_size;}
   void setChannelDataSize(size_t size) { channel_data_size = size; }
 
   void setChannelHeader(uint16_t header) { channel_data_header = header; }
   void setChannelTrailer(uint16_t trailer) { channel_data_trailer = trailer; }
 
-  uint16_t getChannelHeader() { return channel_data_header; }
-  uint16_t getChannelTrailer() { return channel_data_trailer; }
+  uint16_t getChannelHeader() const { return channel_data_header; }
+  uint16_t getChannelTrailer() const { return channel_data_trailer; }
 
-  int getChannelNumber() 
+  int getChannelNumber() const
   { int number = channel_data_header & 0x3fff; return number; }
+
+  void decompress();
 
  private:
   uint16_t channel_data_header;

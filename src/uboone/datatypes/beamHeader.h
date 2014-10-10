@@ -2,8 +2,6 @@
 #define _UBOONETYPES_BEAMHEADER_H
 
 #include <sys/types.h>
-#include <inttypes.h>
-#include "evttypes.h"
 
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/string.hpp>
@@ -23,16 +21,37 @@ using namespace gov::fnal::uboone;
 class beamHeader {
 
  public:
+   beamHeader();
+
+   uint8_t getRecordType() const {return record_type;};
+   std::string getEventSignal() const {return event_signal;};
+   uint32_t getSeconds() const {return seconds;}; // GPS clock. Since Jan 1, 2012. 
+   uint16_t getMilliSeconds() const {return milli_seconds;};
+   uint16_t getNumberOfDevices() const {return number_of_devices;};
+   uint32_t getNumberOfBytesInRecord() const {return number_of_bytes_in_record;};
+
+   void setRecordType(uint8_t val) {record_type=val;};
+   void setEventSignal(std::string val) {event_signal=val;};
+   void setSeconds(uint32_t val) {seconds=val;};
+   void setMilliSeconds(uint16_t val) {milli_seconds=val;};
+   void setNumberOfDevices(uint16_t val) {number_of_devices=val;};
+   void setNumberOfBytesInRecord(uint32_t val) {number_of_bytes_in_record=val;};
+
+   bool operator<( const beamHeader & h ) const {
+     return ((this->seconds < h.seconds) || (this->seconds == h.seconds && this->milli_seconds<h.milli_seconds))  ;
+   }
+   bool operator<=( const beamHeader & h ) const {
+     return ((this->seconds < h.seconds) || (this->seconds == h.seconds && this->milli_seconds<=h.milli_seconds))  ;
+   }
+
+ private:
+
    uint8_t record_type;
    std::string event_signal;
    uint32_t seconds; // GPS clock. Since Jan 1, 2012. 
    uint16_t milli_seconds;
-   uint8_t  number_of_devices;
+   uint16_t number_of_devices;
    uint32_t number_of_bytes_in_record;
-
-   beamHeader();
-
- private:
 
    friend class boost::serialization::access;
 

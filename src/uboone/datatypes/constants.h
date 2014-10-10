@@ -13,9 +13,15 @@ namespace datatypes {
     IO_GRANULARITY_CHANNEL
   };
   
+  //Crate types.
+  enum {
+    TPC_CRATE,
+    PMT_CRATE
+  };
+
 namespace constants
 {
-  const int VERSION = 1; // A dB query eventually.
+  const int VERSION = 5; // A dB query eventually. // NJT: shouldn't this match major version number for datatypes package?
     // ... other related constants
 
 } // namespace constants

@@ -35,6 +35,7 @@
 #define BNB_TYPE 18
 #define NUMI_TYPE 19
 #define TPC_ERROR_TYPE 25
+#define MRT_TYPE 56
 #define TEST_TYPE 57      /* 57 used for diagnostics */
 #define BEGIN_TYPE 60     /* 60 */
 #define RESUME_TYPE 61    /* 61 */
@@ -45,7 +46,10 @@
 #define TRANSLATE_ABBREV 1
 #define TRANSLATE_NOABBREV 0
 
-
+/*Crate header types*/
+#define UNKNOWN_HEADER_TYPE 0
+#define TPC_HEADER_TYPE 0
+#define PMT_HEADER_TYPE 1
 
 /* function declarations */
 #ifdef __CXX__

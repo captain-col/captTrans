@@ -1,5 +1,5 @@
-#ifndef _UBOONETYPES_CARDDATA_H
-#define _UBOONETYPES_CARDDATA_H
+#ifndef _UBOONETYPES_CARDDATAPMT_H
+#define _UBOONETYPES_CARDDATAPMT_H
 #include <memory>
 #include <map>
 #include <algorithm>
@@ -10,10 +10,14 @@
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/version.hpp>
+#include <boost/serialization/map.hpp>
 #include <boost/serialization/binary_object.hpp>
 
 #include "constants.h"
-#include "channelData.h"
+#include "dataHeaderTrailerPMT.h"
+#include "channelDataPMT.h"
+#include "windowHeaderPMT.h"
+#include "windowDataPMT.h"
 
 namespace gov {
 namespace fnal {
@@ -26,15 +30,15 @@ using namespace gov::fnal::uboone;
  *  Note: this is the serialization class that handles the card data.
  ***/
 
-class cardData {
+class cardDataPMT {
 
  public:
   static const uint8_t DAQ_version_number = gov::fnal::uboone::datatypes::constants::VERSION;
   
-  cardData()
+  cardDataPMT()
     { card_data_ptr.reset(); card_data_size=0; cardData_IO_mode = IO_GRANULARITY_CARD;}
 
-  cardData(std::shared_ptr<char> data_ptr, size_t size)
+  cardDataPMT(std::shared_ptr<char> data_ptr, size_t size)
     { card_data_ptr.swap(data_ptr); card_data_size=size; cardData_IO_mode = IO_GRANULARITY_CARD;}
 
   char* getCardDataPtr() const;
@@ -43,17 +47,15 @@ class cardData {
   size_t getCardDataSize() const {return card_data_size;}
   void setCardDataSize(size_t size) { card_data_size = size; }
 
-  void updateIOMode(uint8_t,int);
-  //uint8_t getIOMode() { return cardData_IO_mode; }
-  uint8_t getIOMode() const { return cardData_IO_mode; }
+  void updateIOMode(uint8_t);
+  uint8_t getIOMode()  const{ return cardData_IO_mode; }
 
-  typedef std::map<int,channelData> channelMap_t;
+  typedef std::map<int,channelDataPMT> channelMap_t;
+
   const channelMap_t& getChannelMap() const { return channel_map; }
-  
   int getNumberOfChannels() const { return channel_map.size(); }
-  void insertChannel(int,channelData);
-
-  void decompress();
+  void insertChannel(int,channelDataPMT);
+  void insertWindow(windowHeaderPMT,windowDataPMT);
 
  private:
   std::shared_ptr<char> card_data_ptr;
@@ -61,7 +63,11 @@ class cardData {
 
   uint8_t cardData_IO_mode;
 
-  channelMap_t channel_map;
+  dataHeaderPMT pmt_data_header;
+  std::map<int,channelDataPMT> channel_map;
+  dataTrailerPMT pmt_data_trailer;
+
+  void FillPMTChannels(size_t&);
 
   friend class boost::serialization::access;
   
@@ -82,7 +88,9 @@ class cardData {
 	  ar & boost::serialization::make_binary_object(card_data_ptr.get(),card_data_size);
 
 	else if(cardData_IO_mode >=IO_GRANULARITY_CHANNEL)
-	  ar & channel_map;
+	  ar & pmt_data_header
+	     & channel_map
+	     & pmt_data_trailer;
       }
     }
 
@@ -98,7 +106,9 @@ class cardData {
 	  card_data_ptr.swap(data_ptr);
 	}
 	else if(cardData_IO_mode>=IO_GRANULARITY_CHANNEL)
-	  ar & channel_map;
+	  ar & pmt_data_header
+	     & channel_map
+	     & pmt_data_trailer;
 
       }//endif version 0
     }
@@ -113,7 +123,7 @@ class cardData {
 }  // end of namespace gov
 
 // This MACRO must be outside any namespaces.
-BOOST_CLASS_VERSION(gov::fnal::uboone::datatypes::cardData, gov::fnal::uboone::datatypes::constants::VERSION)    
+BOOST_CLASS_VERSION(gov::fnal::uboone::datatypes::cardDataPMT, gov::fnal::uboone::datatypes::constants::VERSION)    
 
 #endif /* #ifndef BOONETYPES_H */
 

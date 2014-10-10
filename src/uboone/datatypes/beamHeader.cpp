@@ -8,12 +8,12 @@ using namespace gov::fnal::uboone::datatypes;
 
 std::ostream & operator<<(std::ostream &os, const gov::fnal::uboone::datatypes::beamHeader &bh)
 {
-  return os <<"Record type: " << (int)bh.record_type << std::endl
-	    <<"Event signal: "<< bh.event_signal << std::endl
-	    <<"Seconds: "<< bh.seconds << std::endl
-	    <<"Milli seconds: "<< bh.milli_seconds << std::endl
-	    <<"Number of devices: "<< (int)bh.number_of_devices << std::endl
-	    <<"Number of bytes om: "<< bh.number_of_bytes_in_record << std::endl;	 
+  return os <<"Record type: " << (int)bh.getRecordType() << std::endl
+	    <<"Event signal: "<< bh.getEventSignal() << std::endl
+	    <<"Seconds: "<< bh.getSeconds() << std::endl
+	    <<"Milli seconds: "<< bh.getMilliSeconds() << std::endl
+	    <<"Number of devices: "<< (int)bh.getNumberOfDevices() << std::endl
+	    <<"Number of bytes in record: "<< bh.getNumberOfBytesInRecord() << std::endl;	 
 }
 
 beamHeader::beamHeader()

@@ -1,7 +1,8 @@
 #include "TUBDAQInput.hxx"
 
 #include "datatypes/eventRecord.h"
-#
+
+#include "datatypes/constants.h"
 #include "datatypes/crateData.h"
 #include "datatypes/channelData.h"
 
@@ -47,7 +48,6 @@ namespace {
 CP::TUBDAQInput::TUBDAQInput(const char* name) 
     : fFilename(name) {
     fFile = new std::ifstream(fFilename.c_str(), std::ios::binary);
-    fArchive = new boost::archive::binary_iarchive(*fFile);
 }
 
 CP::TUBDAQInput::~TUBDAQInput() {
@@ -60,14 +60,12 @@ CP::TEvent* CP::TUBDAQInput::FirstEvent() {
 
 CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     gov::fnal::uboone::datatypes::eventRecord ubdaqRecord;
-    ubdaqRecord.updateIOMode(0);
 
-    CaptError("Read Event");
+    boost::archive::binary_iarchive archive(*fFile);
 
-    (*fArchive) >> ubdaqRecord;
-
-    CaptError("Build Event" 
-              << std::hex << ubdaqRecord.getGlobalHeader().getRunNumber());
+    archive >> ubdaqRecord;
+    ubdaqRecord.updateIOMode(
+        gov::fnal::uboone::datatypes::IO_GRANULARITY_CHANNEL);
 
     // Build the event context.
     CP::TEventContext context;
@@ -115,7 +113,7 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
              card != cards.end();
              ++card) {
             cardMap::key_type card_header = card->first;
-            int cardNum = card_header.getIDAndModuleWord();  // PROBABLY WRONG
+            int cardNum = card_header.getModule();
             cardMap::mapped_type card_data = card->second;
             channelMap channels = card_data.getChannelMap();
             for (channelMap::iterator channel = channels.begin();
@@ -168,30 +166,3 @@ void CP::TUBDAQInput::CloseFile() {
     }
 }
 
-bool CP::TUBDAQInput::FindEvent() {
-    const char* signature = "serialization::archive\0";
-
-    CaptError("FindEvent");
-    const char* checker = signature;
-    while (!fFile->eof()) {
-        char c = fFile->get();
-        // CaptError("Read " << (int) c);
-        if (c == *checker) {
-            ++checker;
-            // CaptError("Checking " <<c);
-        }
-        else {
-            // CaptError("Failed");
-            checker = signature;
-        }
-        if (*checker == 0) {
-            // we found the signature
-            CaptError("success");
-            unsigned int pos = fFile->tellg();
-            pos -= 22;   // The length of the signature.
-            fFile->seekg(pos);
-            return true;
-        }
-    }
-    return false;
-}

@@ -31,7 +31,9 @@ class globalHeader {
   
   void setRecordType(uint8_t type) { record_type = type; }
   void setRecordOrigin(uint8_t origin) { record_origin = origin; }
+  void setEventType(uint8_t type) { event_type = type; }
   void setRunNumber(uint32_t run) { run_number = run; }
+  void setSubrunNumber(uint32_t subrun) { subrun_number = subrun; }
   void setEventNumber(uint32_t event) { event_number = event; }
   void setEventNumberCrate(uint32_t event) { event_number_crate = event; }
 
@@ -43,7 +45,9 @@ class globalHeader {
 
   uint8_t getRecordType() { return record_type; }
   uint8_t getRecordOrigin() { return record_origin; }
+  uint8_t getEventType() { return event_type; }
   uint32_t getRunNumber() { return run_number; }
+  uint32_t getSubrunNumber() { return subrun_number; }
   uint32_t getEventNumber() { return event_number; }
   uint32_t getEventNumberCrate() { return event_number_crate; }
   
@@ -59,7 +63,9 @@ class globalHeader {
  private:
   uint8_t record_type;   /* From event_types.h */
   uint8_t record_origin; /* DATA or MC */
+  uint8_t event_type;
   uint32_t run_number;
+  uint32_t subrun_number;
   uint32_t event_number;
   uint32_t event_number_crate; /* Crate's sense of the evt #. */
   
@@ -69,17 +75,22 @@ class globalHeader {
   uint16_t nano_seconds;
   uint32_t numberOfBytesInRecord;
 
-  uint8_t number_of_sebs; //put this in just to test versioning
+  uint8_t number_of_sebs;
 
   friend class boost::serialization::access;
   
   template<class Archive>
     void serialize(Archive & ar, const unsigned int version)
     {
-      if(version>0)
-	ar & record_type & record_origin
- 	   & run_number & event_number & event_number_crate
+      if(version>1)
+	ar & record_type & record_origin & event_type
+ 	   & run_number & subrun_number & event_number & event_number_crate
 	   & seconds & milli_seconds & micro_seconds & nano_seconds
+	   & numberOfBytesInRecord & number_of_sebs;
+
+      else if(version>0)
+	ar & record_type & record_origin & event_type
+ 	   & run_number & subrun_number & event_number & event_number_crate
 	   & numberOfBytesInRecord & number_of_sebs;
 
     }

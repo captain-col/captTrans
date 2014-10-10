@@ -46,18 +46,11 @@ public:
 
 private:
 
-    /// Position file at the beginning of an event.
-    bool FindEvent();
-
     /// name of the currently open file
     std::string fFilename; 
 
     /// The input stream attached to the file.
     std::istream* fFile;
-
-    /// The serialize archive being with the events.  This is attached to an
-    /// input stream.
-    boost::archive::binary_iarchive* fArchive;
 
 };
 #endif

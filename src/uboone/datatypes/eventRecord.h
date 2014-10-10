@@ -9,6 +9,7 @@
 #include "gps.h"
 #include "crateHeader.h"
 #include "crateData.h"
+#include "crateDataPMT.h"
 #include "beamHeader.h"
 #include "beamData.h"
 
@@ -40,7 +41,7 @@ using namespace gov::fnal::uboone;
 
 //used for map
 struct compareCrateHeader {
-  bool operator() ( crateHeader lhs, crateHeader rhs)
+  bool operator() ( crateHeader lhs, crateHeader rhs) const
   { return lhs.getCrateNumber() < rhs.getCrateNumber(); }
 };
 
@@ -56,6 +57,12 @@ class eventRecord {
 
   void insertBeamData (beamData bD) { beam_data_vector.push_back(bD); }
   void insertSEB(crateHeader,crateData); //in .cpp file
+  void insertSEB(crateHeader,crateDataPMT); //in .cpp file
+  //void insertSEB_PMT(crateHeader,crateDataPMT); //in .cpp file
+  //void insertSEB_TPC(crateHeader,crateData); //in .cpp file
+
+  typedef std::map<crateHeader,crateData,compareCrateHeader> sebMap_t;
+  typedef std::map<crateHeader,crateDataPMT,compareCrateHeader> sebMapPMT_t;
   
   globalHeader getGlobalHeader() { return global_header; }
   triggerData getTriggerData() { return trigger_data; }
@@ -63,7 +70,10 @@ class eventRecord {
   beamHeader getBeamHeader() { return beam_header; }
 
   std::vector<beamData> getBeamDataVector() { return beam_data_vector; }
-  std::map<crateHeader,crateData,compareCrateHeader> getSEBMap() { return seb_map; }
+  const sebMap_t&    getSEBMap()    const { return seb_map; }
+  const sebMapPMT_t& getSEBPMTMap() const { return seb_pmt_map; }
+  sebMap_t&    getSEBMap()    { return seb_map; }
+  sebMapPMT_t& getSEBPMTMap() { return seb_pmt_map; }
 
   globalHeader* getGlobalHeaderPtr() { return &global_header; }
   triggerData* getTriggerDataPtr() { return &trigger_data; }
@@ -73,18 +83,24 @@ class eventRecord {
   int getSEBMap_size() { return seb_map.size(); }
   void clearSEBMap() { seb_map.clear(); }
 
+  int getSEBPMTMap_size() { return seb_pmt_map.size(); }
+  void clearSEBPMTMap() { seb_pmt_map.clear(); }
+
   int getBeamDataVecotr_size() { return beam_data_vector.size(); }
   void clearBeamDataVector() { beam_data_vector.clear(); }
 
   uint8_t getIOMode() { return er_IO_mode; }
   void updateIOMode(uint8_t); //in .cpp file
 
+  void decompress();
+
  private:
 
   globalHeader global_header;
   triggerData trigger_data;
   gps gps_data;
-  std::map<crateHeader,crateData,compareCrateHeader> seb_map;
+  sebMap_t    seb_map;
+  sebMapPMT_t seb_pmt_map;
   beamHeader beam_header;
   std::vector<beamData> beam_data_vector;
   
@@ -95,12 +111,27 @@ class eventRecord {
   template<class Archive>
     void serialize(Archive & ar, const unsigned int version)
     {
-      if(version>0)
+      if(version>=3)
 	ar & er_IO_mode
 	   & global_header
 	   & trigger_data
 	   & gps_data
 	   & beam_header & beam_data_vector //beam stuff...empty at first, added in later
+	   & seb_map
+	   & seb_pmt_map;
+
+      else if(version>1)
+	ar & er_IO_mode
+	   & global_header
+	   & trigger_data
+	   & gps_data
+	   & beam_header & beam_data_vector //beam stuff...empty at first, added in later
+	   & seb_map
+	   & seb_pmt_map;
+
+      else if(version>0)
+	ar & er_IO_mode
+	   & global_header
 	   & seb_map;
     }
 
