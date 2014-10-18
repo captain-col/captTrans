@@ -56,7 +56,7 @@ namespace {
         // standardized function.  This code uses timegm if it's available,
         // otherwise it plays the "usual" trick with the TZ environment
         // variable.
-#if false // _BSD_SOURCE || _SVID_SOURCE
+#if _BSD_SOURCE || _SVID_SOURCE
         return timegm(tmStruct);
 #else
 #warning "Using thread unsafe version UTC time conversion to replace timegm"
@@ -107,7 +107,7 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     CP::TEventContext context;
 
     context.SetRun(ubdaqRecord.getGlobalHeader().getRunNumber());
-    context.SetSubrun(ubdaqRecord.getGlobalHeader().getSubrunNumber());
+    context.SetSubRun(ubdaqRecord.getGlobalHeader().getSubrunNumber());
     context.SetEvent(ubdaqRecord.getGlobalHeader().getEventNumber());
 
     // The header counts the number of seconds since midnight Jan 1, 2012 UTC
@@ -128,9 +128,9 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     context.SetTimeStamp(offset2000);
 
     // Fill in the number of nanoseconds since the last 1 second tick.
-    int nanoseconds = 1000000*ubdaq.getGlobalheader.getMilliSeconds()
-        + 1000*ubdaq.getGlobalheader.getMicroSeconds()
-        + ubdaq.getGlobalheader.getNanoSeconds();
+    int nanoseconds = 1000000*ubdaqRecord.getGlobalHeader().getMilliSeconds()
+        + 1000*ubdaqRecord.getGlobalHeader().getMicroSeconds()
+        + ubdaqRecord.getGlobalHeader().getNanoSeconds();
     context.SetNanoseconds(nanoseconds);
 
     // Define the partition for this data.
