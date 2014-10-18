@@ -25,6 +25,9 @@
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <ctime>
+#include <cstdlib>
+#include <cstring>
 
 namespace {
     class TUBDAQInputBuilder : public CP::TVInputBuilder {
@@ -43,6 +46,39 @@ namespace {
         }
     };
     TUBDAQInputRegistration registrationObject;
+}
+
+namespace {
+    std::time_t unixMkTimeIsInsane(struct tm* tmStruct) {
+        // The mktime function converts a struct tm expressed in local time to
+        // time_t so it's not the right way to handle UTC.  The right way to
+        // convert would be to use timegm, but unfortunately, it's not a
+        // standardized function.  This code uses timegm if it's available,
+        // otherwise it plays the "usual" trick with the TZ environment
+        // variable.
+#if false // _BSD_SOURCE || _SVID_SOURCE
+        return timegm(tmStruct);
+#else
+#warning "Using thread unsafe version UTC time conversion to replace timegm"
+        time_t ret;
+        char *tz;
+        
+        tz = std::getenv("TZ");
+        if (tz) tz = strdup(tz);
+        setenv("TZ", "", 1);
+        tzset();
+        ret = std::mktime(tmStruct);
+        if (tz) {
+            setenv("TZ", tz, 1);
+            free(tz);
+        }
+        else {
+            unsetenv("TZ");
+        }
+        tzset();
+        return ret;
+#endif
+    }
 }
 
 CP::TUBDAQInput::TUBDAQInput(const char* name) 
@@ -69,10 +105,40 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
 
     // Build the event context.
     CP::TEventContext context;
-    
+
     context.SetRun(ubdaqRecord.getGlobalHeader().getRunNumber());
+    context.SetSubrun(ubdaqRecord.getGlobalHeader().getSubrunNumber());
     context.SetEvent(ubdaqRecord.getGlobalHeader().getEventNumber());
-    context.SetTimeStamp(ubdaqRecord.getGlobalHeader().getSeconds());
+
+    // The header counts the number of seconds since midnight Jan 1, 2012 UTC
+    // so it needs to be converted into a standard unix time before being
+    // saved into the context.  This raise the usual UNIX problem that it's
+    // time handling is insane, so bend over backwards to fix it.
+    struct tm offsetTime;
+    offsetTime.tm_year = 2012;
+    offsetTime.tm_mon = 0;
+    offsetTime.tm_mday = 1;
+    offsetTime.tm_hour = 0;
+    offsetTime.tm_min = 0;
+    offsetTime.tm_sec = 0;
+    offsetTime.tm_isdst = 0;
+    ULong_t offsetTimeT= unixMkTimeIsInsane(&offsetTime);
+    ULong_t offset2000 = ubdaqRecord.getGlobalHeader().getSeconds() 
+        + offsetTimeT;
+    context.SetTimeStamp(offset2000);
+
+    // Fill in the number of nanoseconds since the last 1 second tick.
+    int nanoseconds = 1000000*ubdaq.getGlobalheader.getMilliSeconds()
+        + 1000*ubdaq.getGlobalheader.getMicroSeconds()
+        + ubdaq.getGlobalheader.getNanoSeconds();
+    context.SetNanoseconds(nanoseconds);
+
+    // Define the partition for this data.
+    /// \bug As of this writing, the partitions for CAPTAIN haven't been
+    /// defined, and this will need to be filled in later.  For now, the
+    /// partition is set to "0" so that the partition is valid and the event
+    /// isn't flagged as MC.
+    context.SetPartition(0);
 
     // Create the event.
     std::auto_ptr<CP::TEvent> newEvent(new CP::TEvent(context));
