@@ -8,7 +8,7 @@ char* crateDataPMT::getCrateDataPtr(){
   
   if(crateData_IO_mode >= IO_GRANULARITY_CARD){
     throw std::runtime_error("crateDataPMT::getCardDataPtr() ERROR! Granularity is above crate level.");
-    return nullptr;
+    return NULL;
   }
   else {
     return crate_data_ptr.get();
@@ -19,7 +19,7 @@ const char* crateDataPMT::getCrateDataPtr() const{
   
   if(crateData_IO_mode >= IO_GRANULARITY_CARD){
     throw std::runtime_error("crateDataPMT::getCardDataPtr() ERROR! Granularity is above crate level.");
-    return nullptr;
+    return NULL;
   }
   else {
     return crate_data_ptr.get();

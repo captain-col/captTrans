@@ -1,5 +1,7 @@
 #include "eventRecord.h"
 
+#include <sstream>
+
 using namespace gov::fnal::uboone::datatypes;
 
 eventRecord::eventRecord() {
@@ -28,8 +30,12 @@ void eventRecord::updateIOMode(uint8_t mode) {
       (seb_it->second).updateIOMode(mode);
     } catch (std::runtime_error& e) {
       int crate = (seb_it->first).getCrateNumber();
-      std::string err = "Error unpacking TPC crate " + std::to_string(crate) + std::string(": ")+  e.what();
-      throw std::runtime_error(err);
+      std::ostringstream err;
+      err << "Error unpacking TPC crate " 
+          << crate 
+	  << ": "
+	  << e.what();
+      throw std::runtime_error(err.str());
     }
   }
 
@@ -39,8 +45,12 @@ void eventRecord::updateIOMode(uint8_t mode) {
       (seb_pmt_it->second).updateIOMode(mode);
     } catch (std::runtime_error& e) {
       int crate = (seb_it->first).getCrateNumber();
-      std::string err = "Error unpacking PMT crate " + std::to_string(crate) + std::string(": ")+  e.what();
-      throw std::runtime_error(err);
+      std::ostringstream err;
+      err << "Error unpacking PMT crate " 
+          << crate 
+	  << ": "
+	  << e.what();
+      throw std::runtime_error(err.str());
     }
   }
 

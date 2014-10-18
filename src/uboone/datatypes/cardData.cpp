@@ -9,7 +9,7 @@ char* cardData::getCardDataPtr() const{
   
   if(cardData_IO_mode >= IO_GRANULARITY_CHANNEL){
     throw std::runtime_error("cardData::getCardDataPtr() ERROR! Granularity is above card level.");
-    return nullptr;
+    return NULL;
   }
   else{
     return card_data_ptr.get();
