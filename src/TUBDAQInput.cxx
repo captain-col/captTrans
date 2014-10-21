@@ -147,17 +147,17 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
 
     context.SetTimeStamp(offset2000);
 
-    int milliseconds = ubdaqRecord.getGlobalHeader().getMilliSeconds();
-    int microseconds = ubdaqRecord.getGlobalHeader().getMicroSeconds();
-    int nanoseconds = ubdaqRecord.getGlobalHeader().getNanoSeconds();
-    if (milliseconds < 1001 
-        && microseconds < 1001 
-        && nanoseconds < 1001) {
-        // Fill in the number of nanoseconds since the last 1 second tick.
-        int nanoseconds = 1000000*
-            + 1000*ubdaqRecord.getGlobalHeader().getMicroSeconds()
-            + ubdaqRecord.getGlobalHeader().getNanoSeconds();
-        context.SetNanoseconds(nanoseconds);
+    unsigned int milliseconds = ubdaqRecord.getGlobalHeader().getMilliSeconds();
+    unsigned int microseconds = ubdaqRecord.getGlobalHeader().getMicroSeconds();
+    unsigned int nanoseconds = ubdaqRecord.getGlobalHeader().getNanoSeconds();
+    if (milliseconds < 1001
+        || microseconds < 1001 
+        || nanoseconds < 1001) {
+        int nanoClock = 0;
+        if (milliseconds < 1001) nanoClock += 1000000*milliseconds;
+        if (microseconds < 1001) nanoClock += 1000*microseconds;
+        if (nanoseconds < 1001) nanoClock += nanoseconds;
+        context.SetNanoseconds(nanoClock);
     }
 
     // Define the partition for this data.
