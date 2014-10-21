@@ -55,7 +55,8 @@ namespace {
         // convert would be to use timegm, but unfortunately, it's not a
         // standardized function.  This code uses timegm if it's available,
         // otherwise it plays the "usual" trick with the TZ environment
-        // variable.
+        // variable.  There are similar functions in captDBI, but this class
+        // can't depend on that so here it is.
 #if _BSD_SOURCE || _SVID_SOURCE
         return timegm(tmStruct);
 #else
@@ -110,28 +111,54 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     context.SetSubRun(ubdaqRecord.getGlobalHeader().getSubrunNumber());
     context.SetEvent(ubdaqRecord.getGlobalHeader().getEventNumber());
 
-    // The header counts the number of seconds since midnight Jan 1, 2012 UTC
-    // so it needs to be converted into a standard unix time before being
-    // saved into the context.  This raise the usual UNIX problem that it's
-    // time handling is insane, so bend over backwards to fix it.
-    struct tm offsetTime;
-    offsetTime.tm_year = 2012;
-    offsetTime.tm_mon = 0;
-    offsetTime.tm_mday = 1;
-    offsetTime.tm_hour = 0;
-    offsetTime.tm_min = 0;
-    offsetTime.tm_sec = 0;
-    offsetTime.tm_isdst = 0;
-    ULong_t offsetTimeT= unixMkTimeIsInsane(&offsetTime);
-    ULong_t offset2000 = ubdaqRecord.getGlobalHeader().getSeconds() 
-        + offsetTimeT;
+    std::time_t offset2000 = ubdaqRecord.getGlobalHeader().getSeconds();
+
+    // Check if the clock is "reasonable".  If not, then fake a time after
+    // miniCaptain started taking data.
+    if (offset2000 == 0xFFFFFFFF) {
+        CaptError("DAQ did not save an event time. Faking the time!");
+        struct tm offsetTime;
+        offsetTime.tm_year = 114;
+        offsetTime.tm_mon = 10;
+        offsetTime.tm_mday = 20;
+        offsetTime.tm_hour = 0;
+        offsetTime.tm_min = 0;
+        offsetTime.tm_sec = 0;
+        offsetTime.tm_isdst = 0;
+        offset2000= unixMkTimeIsInsane(&offsetTime);
+    }
+    else {
+        // The header counts the number of seconds since midnight Jan 1, 2012
+        // UTC so it needs to be converted into a standard unix time before
+        // being saved into the context.  This raises the usual UNIX problem
+        // that it's time handling is insane, so bend over backwards to fix
+        // it.
+        struct tm offsetTime;
+        offsetTime.tm_year = 112;
+        offsetTime.tm_mon = 0;
+        offsetTime.tm_mday = 1;
+        offsetTime.tm_hour = 0;
+        offsetTime.tm_min = 0;
+        offsetTime.tm_sec = 0;
+        offsetTime.tm_isdst = 0;
+        std::time_t offsetTimeT= unixMkTimeIsInsane(&offsetTime);
+        offset2000 += offsetTimeT;
+    }
+
     context.SetTimeStamp(offset2000);
 
-    // Fill in the number of nanoseconds since the last 1 second tick.
-    int nanoseconds = 1000000*ubdaqRecord.getGlobalHeader().getMilliSeconds()
-        + 1000*ubdaqRecord.getGlobalHeader().getMicroSeconds()
-        + ubdaqRecord.getGlobalHeader().getNanoSeconds();
-    context.SetNanoseconds(nanoseconds);
+    int milliseconds = ubdaqRecord.getGlobalHeader().getMilliSeconds();
+    int microseconds = ubdaqRecord.getGlobalHeader().getMicroSeconds();
+    int nanoseconds = ubdaqRecord.getGlobalHeader().getNanoSeconds();
+    if (milliseconds < 1001 
+        && microseconds < 1001 
+        && nanoseconds < 1001) {
+        // Fill in the number of nanoseconds since the last 1 second tick.
+        int nanoseconds = 1000000*
+            + 1000*ubdaqRecord.getGlobalHeader().getMicroSeconds()
+            + ubdaqRecord.getGlobalHeader().getNanoSeconds();
+        context.SetNanoseconds(nanoseconds);
+    }
 
     // Define the partition for this data.
     /// \bug As of this writing, the partitions for CAPTAIN haven't been
