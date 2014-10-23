@@ -85,6 +85,7 @@ namespace {
 CP::TUBDAQInput::TUBDAQInput(const char* name) 
     : fFilename(name) {
     fFile = new std::ifstream(fFilename.c_str(), std::ios::binary);
+    fEventsRead = 0;
 }
 
 CP::TUBDAQInput::~TUBDAQInput() {
@@ -241,10 +242,11 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
         }
     }
 
+    ++fEventsRead;
     return newEvent.release();
 }
 
-int  CP::TUBDAQInput::GetPosition() const {return fFile->tellg();}
+int  CP::TUBDAQInput::GetPosition() const {return fEventsRead;}
 
 bool CP::TUBDAQInput::IsOpen() {return fFile;}
 

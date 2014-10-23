@@ -29,7 +29,8 @@ public:
     
     /// Return the position of the event just read inside of the file.  A
     /// position of zero is the first event.  After reading the last event,
-    /// the position will be the total number of events in the file.
+    /// the position will be the total number of events in the file.  This is
+    /// not the byte position in the file.
     virtual int GetPosition(void) const;
 
     /// Flag that the file is open.
@@ -52,5 +53,7 @@ private:
     /// The input stream attached to the file.
     std::istream* fFile;
 
+    /// The number of events read.
+    int fEventsRead;
 };
 #endif
