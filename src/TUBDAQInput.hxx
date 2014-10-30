@@ -13,9 +13,21 @@ namespace CP {
     class TUBDAQInput;
 };
 
+
+/// A class to 
 class  CP::TUBDAQInput : public CP::TVInputFile {
 public:
-    TUBDAQInput(const char* fName);
+
+    /// Open an file written in ubdaq format (microboone DAQ format).  The
+    /// first and last parameters control which part of the ADC range is
+    /// converted.  The default setting is often for a very long time window,
+    /// and this allows the converted time window to be limited to something
+    /// more reasonable.  This is controlled from the command line using the
+    /// eventLoop option.  For instance, "-tubdaq" will convert the entire
+    /// range, but -tubdaq(2800,3800) only converts the 500 us right around
+    /// the trigger time (assuming w are using a 4.5 ms sampling period and
+    /// the trigger is at sample 3200.
+    TUBDAQInput(const char* fName,int first =-1, int last=-1);
     virtual ~TUBDAQInput(); 
 
     /// Return the first event in the input file.  If the file does not
@@ -55,5 +67,12 @@ private:
 
     /// The number of events read.
     int fEventsRead;
+
+    /// The first sample to convert
+    int fFirstSample;
+
+    /// The last sample to convert
+    int fLastSample;
+
 };
 #endif

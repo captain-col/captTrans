@@ -7,6 +7,7 @@
 #include "datatypes/channelData.h"
 
 #include "TEvent.hxx"
+#include "TCaptLog.hxx"
 #include "TEventContext.hxx"
 #include "TManager.hxx"
 #include "TPulseDigit.hxx"
@@ -28,6 +29,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 
 namespace {
     class TUBDAQInputBuilder : public CP::TVInputBuilder {
@@ -35,6 +37,24 @@ namespace {
         TUBDAQInputBuilder() 
             : CP::TVInputBuilder("ubdaq", "Read a microboone DAQ file") {}
         CP::TVInputFile* Open(const char* file) const {
+            std::string args = GetArguments();
+            if (args.find("(") != std::string::npos) {
+                CaptLog("UBDAQ builder argument: " << args);
+                std::istringstream parse(args.substr(
+                                             args.find_first_of('(')+1));
+                int first;
+                parse >> first;
+                char sep;
+                do {
+                    parse >> sep;
+                } while (sep != ',');
+                int last;
+                parse >> last;
+                CaptLog("UBDAQ builder argument: " << args 
+                        << " --> " << first
+                        << " to " << last << " sample calibrated");
+                return new CP::TUBDAQInput(file,first,last);
+            }
             return new CP::TUBDAQInput(file);
         }
     };
@@ -82,8 +102,8 @@ namespace {
     }
 }
 
-CP::TUBDAQInput::TUBDAQInput(const char* name) 
-    : fFilename(name) {
+CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last) 
+    : fFilename(name), fFirstSample(first), fLastSample(last) {
     fFile = new std::ifstream(fFilename.c_str(), std::ios::binary);
     fEventsRead = 0;
 }
@@ -117,7 +137,9 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     // Check if the clock is "reasonable".  If not, then fake a time after
     // miniCaptain started taking data.
     if (offset2000 == 0xFFFFFFFF) {
-        CaptError("DAQ did not save an event time. Faking the time!");
+        CaptError("Event " << context.GetRun() 
+                  << "." << context.GetEvent() 
+                  << ": No time saved by DAQ.");
         struct tm offsetTime;
         offsetTime.tm_year = 114;
         offsetTime.tm_mon = 10;
@@ -195,6 +217,7 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     typedef std::map<int,
                      gov::fnal::uboone::datatypes::channelData> channelMap;
 
+    CP::TPulseDigit::Vector adc(30000);
     crateMap crates = ubdaqRecord.getSEBMap();
     for (crateMap::iterator crate = crates.begin(); 
          crate != crates.end();
@@ -217,13 +240,23 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
                 int nSamples
                     = channel->second.getChannelDataSize()/sizeof(UShort_t);
                 Char_t* samples = channel->second.getChannelDataPtr();
+                int beginSamples = 0;
+
+                // Possibly truncate some of the samples at the beginning.
+                if (fFirstSample > 0 && fFirstSample < nSamples) {
+                    beginSamples = fFirstSample;
+                }
+
+                // Possibly truncate some of the samples at the end.
+                if (fLastSample > fFirstSample && fLastSample < nSamples) {
+                    nSamples = fLastSample;
+                }
 
                 CP::TTPCChannelId chanId(crateNum,cardNum,channelNum);
                 // Read the ADC data.  This could be more efficient, but as
                 // long as it's not a bottle neck, I'm keeping it bog simple.
-                CP::TPulseDigit::Vector adc;
                 adc.clear();
-                for (int i=0; i<nSamples; ++i) {
+                for (int i=beginSamples; i<nSamples; ++i) {
                     UShort_t sample;
                     // A copy is used since the ADC samples (uint16_t) are
                     // saved in an array of uint8_t and may not be aligned
@@ -236,7 +269,9 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
                 }
 
                 // Create the digit.
-                CP::TPulseDigit* digit = new TPulseDigit(chanId,0, adc);
+                CP::TPulseDigit* digit = new TPulseDigit(chanId,
+                                                         beginSamples,
+                                                         adc);
                 drift->push_back(digit);
             }
         }
