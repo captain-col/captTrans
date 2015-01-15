@@ -34,6 +34,7 @@ macro captTrans_linkopts " -L$(CAPTTRANSROOT)/$(captTrans_tag) "
 macro_append captTrans_linkopts " -lcaptTrans "
 macro_append captTrans_linkopts " $(Boost_linkopts) " 
 macro_append captTrans_linkopts " $(Boost_linkopts_serialization) " 
+macro_append captTrans_linkopts " $(Boost_linkopts_iostreams) " 
 macro captTrans_stamps " $(captTransstamp) $(linkdefstamp) "
 
 # The paths to find this library and it's executables

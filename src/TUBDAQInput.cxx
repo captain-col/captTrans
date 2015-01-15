@@ -21,6 +21,10 @@
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/split_member.hpp>
 
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
@@ -104,7 +108,21 @@ namespace {
 
 CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last) 
     : fFilename(name), fFirstSample(first), fLastSample(last) {
-    fFile = new std::ifstream(fFilename.c_str(), std::ios::binary);
+
+    if (fFilename.rfind(".gz")) {
+        std::ifstream *compressed
+            = new std::ifstream(fFilename.c_str(),
+                                std::ios::in | std::ios::binary);
+        boost::iostreams::filtering_istreambuf *input 
+            = new boost::iostreams::filtering_istreambuf();
+        input->push(boost::iostreams::gzip_decompressor());
+        input->push(*compressed);
+        fFile = new std::istream(input);
+    }
+    else {
+        fFile = new std::ifstream(fFilename.c_str(),
+                                  std::ios::in | std::ios::binary);
+    }
     fEventsRead = 0;
 }
 
@@ -117,6 +135,15 @@ CP::TEvent* CP::TUBDAQInput::FirstEvent() {
 }
 
 CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
+    typedef std::map<gov::fnal::uboone::datatypes::crateHeader,
+                     gov::fnal::uboone::datatypes::crateData,
+                     gov::fnal::uboone::datatypes::compareCrateHeader> crateMap;
+    typedef std::map<gov::fnal::uboone::datatypes::cardHeader,
+                     gov::fnal::uboone::datatypes::cardData,
+                     gov::fnal::uboone::datatypes::compareCardHeader> cardMap;
+    typedef std::map<int,
+                     gov::fnal::uboone::datatypes::channelData> channelMap;
+
     gov::fnal::uboone::datatypes::eventRecord ubdaqRecord;
 
     boost::archive::binary_iarchive archive(*fFile);
@@ -132,56 +159,65 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     context.SetSubRun(ubdaqRecord.getGlobalHeader().getSubrunNumber());
     context.SetEvent(ubdaqRecord.getGlobalHeader().getEventNumber());
 
-    std::time_t offset2000 = ubdaqRecord.getGlobalHeader().getSeconds();
+    do {
+        // Check if the global header clock is "reasonable".  If it is, then
+        // correct for the offset.
+        std::time_t offset2000 = ubdaqRecord.getGlobalHeader().getSeconds();
+        if (offset2000 != 0xFFFFFFFF) {
+            // The header counts the number of seconds since midnight Jan 1,
+            // 2012 UTC so it needs to be converted into a standard unix time
+            // before being saved into the context.  This raises the usual
+            // UNIX problem that it's time handling is insane, so bend over
+            // backwards to fix it.
+            struct tm offsetTime;
+            offsetTime.tm_year = 112;
+            offsetTime.tm_mon = 0;
+            offsetTime.tm_mday = 1;
+            offsetTime.tm_hour = 0;
+            offsetTime.tm_min = 0;
+            offsetTime.tm_sec = 0;
+            offsetTime.tm_isdst = 0;
+            std::time_t offsetTimeT= unixMkTimeIsInsane(&offsetTime);
+            unsigned int seconds = offset2000 + offsetTimeT;
+            unsigned int milliseconds
+                = ubdaqRecord.getGlobalHeader().getMilliSeconds();
+            unsigned int microseconds
+                = ubdaqRecord.getGlobalHeader().getMicroSeconds();
+            unsigned int nanoseconds
+                = ubdaqRecord.getGlobalHeader().getNanoSeconds()
+                + 1000*microseconds + 1000000*milliseconds;
+            context.SetTimeStamp(seconds);
+            context.SetNanoseconds(nanoseconds);
+            break;
+        }
+        
+        // The number of seconds hasn't been initialized, so try the SEB
+        // clocks.
+        crateMap &crates = ubdaqRecord.getSEBMap();
+        unsigned int seconds = 0xFFFFFFFF;
+        unsigned int nanoseconds = 0xFFFFFFFF;
+        for (crateMap::iterator crate = crates.begin(); 
+             crate != crates.end();
+             ++crate) {
+            crateMap::key_type crate_header = crate->first;
+            int crateNum = crate_header.getCrateNumber();
+            unsigned int crateSec = crate_header.getSebTimeSec();
+            unsigned int crateUsec = crate_header.getSebTimeUsec();
+            if ((crateSec < seconds) ||
+                (crateSec == seconds && 1000*crateUsec < nanoseconds)) {
+                seconds = crateSec;
+                nanoseconds = 1000*crateUsec;
+                context.SetTimeStamp(seconds);
+                context.SetNanoseconds(nanoseconds);
+            }
+        }
 
-    // Check if the clock is "reasonable".  If not, then fake a time after
-    // miniCaptain started taking data.
-    if (offset2000 == 0xFFFFFFFF) {
+        if (seconds != 0xFFFFFFFF) break;
         CaptError("Event " << context.GetRun() 
                   << "." << context.GetEvent() 
-                  << ": No time saved by DAQ.");
-        struct tm offsetTime;
-        offsetTime.tm_year = 114;
-        offsetTime.tm_mon = 10;
-        offsetTime.tm_mday = 20;
-        offsetTime.tm_hour = 0;
-        offsetTime.tm_min = 0;
-        offsetTime.tm_sec = 0;
-        offsetTime.tm_isdst = 0;
-        offset2000= unixMkTimeIsInsane(&offsetTime);
-    }
-    else {
-        // The header counts the number of seconds since midnight Jan 1, 2012
-        // UTC so it needs to be converted into a standard unix time before
-        // being saved into the context.  This raises the usual UNIX problem
-        // that it's time handling is insane, so bend over backwards to fix
-        // it.
-        struct tm offsetTime;
-        offsetTime.tm_year = 112;
-        offsetTime.tm_mon = 0;
-        offsetTime.tm_mday = 1;
-        offsetTime.tm_hour = 0;
-        offsetTime.tm_min = 0;
-        offsetTime.tm_sec = 0;
-        offsetTime.tm_isdst = 0;
-        std::time_t offsetTimeT= unixMkTimeIsInsane(&offsetTime);
-        offset2000 += offsetTimeT;
-    }
+                  << ": No time for DAQ.");
 
-    context.SetTimeStamp(offset2000);
-
-    unsigned int milliseconds = ubdaqRecord.getGlobalHeader().getMilliSeconds();
-    unsigned int microseconds = ubdaqRecord.getGlobalHeader().getMicroSeconds();
-    unsigned int nanoseconds = ubdaqRecord.getGlobalHeader().getNanoSeconds();
-    if (milliseconds < 1001
-        || microseconds < 1001 
-        || nanoseconds < 1001) {
-        int nanoClock = 0;
-        if (milliseconds < 1001) nanoClock += 1000000*milliseconds;
-        if (microseconds < 1001) nanoClock += 1000*microseconds;
-        if (nanoseconds < 1001) nanoClock += nanoseconds;
-        context.SetNanoseconds(nanoClock);
-    }
+    } while (false);
 
     // Define the partition for this data.
     /// \bug As of this writing, the partitions for CAPTAIN haven't been
@@ -208,15 +244,6 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     }
 
     // Get the digits from the event.
-    typedef std::map<gov::fnal::uboone::datatypes::crateHeader,
-                     gov::fnal::uboone::datatypes::crateData,
-                     gov::fnal::uboone::datatypes::compareCrateHeader> crateMap;
-    typedef std::map<gov::fnal::uboone::datatypes::cardHeader,
-                     gov::fnal::uboone::datatypes::cardData,
-                     gov::fnal::uboone::datatypes::compareCardHeader> cardMap;
-    typedef std::map<int,
-                     gov::fnal::uboone::datatypes::channelData> channelMap;
-
     CP::TPulseDigit::Vector adc(30000);
     crateMap crates = ubdaqRecord.getSEBMap();
     for (crateMap::iterator crate = crates.begin(); 
