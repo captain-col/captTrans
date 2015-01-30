@@ -109,7 +109,7 @@ namespace {
 CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last) 
     : fFilename(name), fFirstSample(first), fLastSample(last) {
 
-    if (fFilename.rfind(".gz")) {
+    if (fFilename.rfind(".gz") != std::string::npos) {
         std::ifstream *compressed
             = new std::ifstream(fFilename.c_str(),
                                 std::ios::in | std::ios::binary);
