@@ -58,5 +58,8 @@ macro_append rawDumpNevis_dependencies " captTrans "
 application capt-trans ../app/capt-trans.cxx
 macro_append capt-trans_dependencies " captTrans "
 
+application skim-events ../app/skim-events.cxx
+macro_append skim-events_dependencies " captTrans "
+
 application testWriteEventRecord ../test/testWriteEventRecord.cxx
 macro_append testWriteEventRecord_dependencies " captTrans "
