@@ -43,8 +43,8 @@ public:
         // Check to see if the event was in a skim file.
         for (std::vector< std::pair<int,int> >::const_iterator re
                  = fRunEvent.begin(); re!= fRunEvent.end(); ++re) {
-            if (context.GetRun() != re->first) continue;
-            if (context.GetEvent() != re->second) continue;
+            if ((int) context.GetRun() != re->first) continue;
+            if ((int) context.GetEvent() != re->second) continue;
             CaptLog("    Save " << context);
             return true;
         }
