@@ -15,4 +15,21 @@ The initial implementation works for the standard output of the UBDAQ, as
 well as the so-called "nevis" format.  The library interfaces with the
 TInputManager class in captEvent.
 
+
+\section captTrans_v0r0p1_history Version 0.0.1
+
+Freeze information:
+   - Freeze Date: Tue Apr  7 12:33:49 2015
+   - Freeze User: mcgrew
+   - Freeze Host: boxer boxer 
+
+
+NEW FEATURES:
+
+** Set the TEventContext partition to be either CAPTAIN or miniCAPTAIN for
+   data.  The TEventContext can now be used to check that which detector
+   the event came from.
+
+** Add the beginnings of an app to skim particular events out of a file.
+
 */
