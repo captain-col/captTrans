@@ -123,6 +123,17 @@ CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last)
         fFile = new std::ifstream(fFilename.c_str(),
                                   std::ios::in | std::ios::binary);
     }
+
+    // Determine the detector type being converted so that the partition can
+    // be correctly set.  This depends on the file naming convention, but the
+    // DAQ doesn't provide any other status header to determine the detector.
+    if (fFilename.find("mCAPTAIN") != std::string::npos) {
+        fDetector = "mCAPTAIN";
+    }
+    else {
+        fDetector = "CAPTAIN";
+    }
+    
     fEventsRead = 0;
 }
 
@@ -200,7 +211,6 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
              crate != crates.end();
              ++crate) {
             crateMap::key_type crate_header = crate->first;
-            int crateNum = crate_header.getCrateNumber();
             unsigned int crateSec = crate_header.getSebTimeSec();
             unsigned int crateUsec = crate_header.getSebTimeUsec();
             if ((crateSec < seconds) ||
@@ -224,8 +234,13 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     /// defined, and this will need to be filled in later.  For now, the
     /// partition is set to "0" so that the partition is valid and the event
     /// isn't flagged as MC.
-    context.SetPartition(0);
-
+    if (fDetector == "mCAPTAIN") {
+        context.SetPartition(CP::TEventContext::kmCAPTAIN);
+    }
+    else {
+        context.SetPartition(CP::TEventContext::kCAPTAIN);
+    }
+        
     // Create the event.
     std::auto_ptr<CP::TEvent> newEvent(new CP::TEvent(context));
 

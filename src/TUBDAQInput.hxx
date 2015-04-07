@@ -25,7 +25,7 @@ public:
     /// more reasonable.  This is controlled from the command line using the
     /// eventLoop option.  For instance, "-tubdaq" will convert the entire
     /// range, but -tubdaq(2800,3800) only converts the 500 us right around
-    /// the trigger time (assuming w are using a 4.5 ms sampling period and
+    /// the trigger time (assuming we are using a 4.5 ms sampling period and
     /// the trigger is at sample 3200.
     TUBDAQInput(const char* fName,int first =-1, int last=-1);
     virtual ~TUBDAQInput(); 
@@ -65,6 +65,9 @@ private:
     /// The input stream attached to the file.
     std::istream* fFile;
 
+    /// The detector type
+    std::string fDetector;
+    
     /// The number of events read.
     int fEventsRead;
 
