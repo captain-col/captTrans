@@ -230,16 +230,21 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
     } while (false);
 
     // Define the partition for this data.
-    /// \bug As of this writing, the partitions for CAPTAIN haven't been
-    /// defined, and this will need to be filled in later.  For now, the
-    /// partition is set to "0" so that the partition is valid and the event
-    /// isn't flagged as MC.
     if (fDetector == "mCAPTAIN") {
         context.SetPartition(CP::TEventContext::kmCAPTAIN);
     }
-    else {
+    else if (fDetector == "CAPTAIN") {
         context.SetPartition(CP::TEventContext::kCAPTAIN);
     }
+    else {
+        context.SetPartition(CP::TEventContext::kCAPTAIN);
+        static int errorThrottle=100;
+        if (--errorThrottle>0) {
+            CaptError("Detector type not set for " << context.GetRun() 
+                      << "." << context.GetEvent() 
+                      << ": Defaulting to CAPTAIN.");
+        }
+    }        
         
     // Create the event.
     std::auto_ptr<CP::TEvent> newEvent(new CP::TEvent(context));
