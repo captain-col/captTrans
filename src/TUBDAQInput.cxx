@@ -81,7 +81,7 @@ namespace {
         // otherwise it plays the "usual" trick with the TZ environment
         // variable.  There are similar functions in captDBI, but this class
         // can't depend on that so here it is.
-#if _BSD_SOURCE || _SVID_SOURCE
+#if defined(_DEFAULT_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || defined(_SVID_SOURCE)
         return timegm(tmStruct);
 #else
 #warning "Using thread unsafe version UTC time conversion to replace timegm"

@@ -2,14 +2,14 @@
 
 #include <eventLoop.hxx>
 
-class TDumpNevis: public CP::TEventLoopFunction {
+class TCaptTransLoop: public CP::TEventLoopFunction {
 public:
-    TDumpNevis() {
+    TCaptTransLoop() {
         fLSOption = "";
         fQuiet = true;
     }
 
-    virtual ~TDumpNevis() {};
+    virtual ~TCaptTransLoop() {};
 
     void Usage(void) {
         std::cout << "    -O list     List events in the file"
@@ -45,7 +45,7 @@ private:
 };
 
 int main(int argc, char **argv) {
-    TDumpNevis userCode;
+    TCaptTransLoop userCode;
     CP::eventLoop(argc,argv,userCode);
 }
 
