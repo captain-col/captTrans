@@ -13,7 +13,15 @@ namespace CP {
 };
 
 /// Open input files from the TPC and PDS and merge them into a single output
-/// event.  The trigger setup is such that there will be multiple PDS triggers
+/// event.  The input files are given as a comma separated list with the ubdaq
+/// file first and the PDS root file second, so the command line might look
+/// like
+///
+/// \code
+///  capt-trans.exe -tmerge mCAPTAIN_EXT-54321-0.ubdaq.gz,outfile_54321.root
+/// \endcode
+///
+/// The trigger setup is such that there will be multiple PDS triggers
 /// per TPC trigger.  Events are merged based on the time in the event
 /// context.  The merge time is controlled from the command line using the
 /// eventLoop option.  For instance, -tmerge will use the default time window,
