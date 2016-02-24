@@ -26,12 +26,27 @@ namespace {
                 std::string argString = args.substr(args.find_first_of('(')+1);
                 argString = argString.substr(0,argString.find_first_of(",)"));
                 argString = CP::TUnitsTable::Get().ConvertWithUnit(argString);
-                std::istringstream parse(argString.c_str());
                 double window;
-                parse >> window;
-                CaptLog("Merge builder argument: " << argString
-                        << " --> " << window << " ns window");
-                return new CP::TMergeInput(file,window);
+                std::istringstream parse1(argString.c_str());
+                parse1 >> window;
+                double offset = 0.0;
+                if (args.find(",") != std::string::npos) {
+                    argString = args.substr(args.find_first_of(',')+1);
+                    argString
+                        = argString.substr(0,argString.find_first_of(')'));
+                    if (!argString.empty()) {
+                        argString
+                            = CP::TUnitsTable::Get().ConvertWithUnit(argString);
+                        std::istringstream parse2(argString.c_str());
+                        parse2 >> offset;
+                    }
+                }
+                CaptLog("Merge builder argument: " 
+                        << CP::TUnitsTable::Get().ConvertTime(offset)
+                        << " +/- "
+                        << CP::TUnitsTable::Get().ConvertTime(window)
+                        << " window");
+                return new CP::TMergeInput(file,window,offset);
             }
             return new CP::TMergeInput(file);
         }
@@ -47,10 +62,10 @@ namespace {
 
 }
 
-CP::TMergeInput::TMergeInput(const char* name, double window) 
+CP::TMergeInput::TMergeInput(const char* name, double window, double offset) 
     : fFilename(name), fTPCFile(NULL),
       fPDSFile(NULL), fPDSEvent(NULL), fEventsRead(0),
-      fWindow(window) {
+      fWindow(window), fOffset(offset) {
 
     std::string tpcFilename
         = fFilename.substr(0,fFilename.find_first_of(','));

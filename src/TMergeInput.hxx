@@ -18,19 +18,23 @@ namespace CP {
 /// context.  The merge time is controlled from the command line using the
 /// eventLoop option.  For instance, -tmerge will use the default time window,
 /// while -tmerge(50ms) will use a 50 ms window.  Note: the shell will
-/// probably require the "(" to be escaped, so it's -tmerge\(50ms\).
+/// probably require the "(" to be escaped, so it's -tmerge\(50ms\).  The
+/// offset is controlled by the second arguement.  For example,
+/// -tmerge(20ms,10ms) will merge PDS events that are in a +/-20ms window
+/// centered 10ms after the TPC trigger (as based on the PDS computer time).
 class  CP::TMergeInput : public CP::TVInputFile {
 public:
 
     /// Open input files from the TPC and PDS and merge them into a single
     /// output event.  The trigger setup is such that there will be multiple
     /// PDS triggers per TPC trigger.  Events are merged based on the time in
-    /// the event context.  The merge time is controlled from the command line
-    /// using the eventLoop option.  For instance, -tmerge will use the
-    /// default time window, while -tmerge(50ms) will use a 50 ms window.
-    /// Note: the shell will probably require the "(" to be escaped, so it's
-    /// -tmerge\(50ms\).
-    TMergeInput(const char* fNames, double window = 40*unit::ms);
+    /// the event context.  The "window" is the half width of the time window
+    /// around the TPC event to merge in PDS events.  The "offset" is an
+    /// offset time from the TPC event.  A positive offset takes PDS events
+    /// that are later than the TPC event.
+    TMergeInput(const char* fNames,
+                double window = 40*unit::ms,
+                double offset = 0*unit::ms);
     virtual ~TMergeInput(); 
 
     /// Return the first event in the input file.  Thie merged files don't
@@ -76,5 +80,8 @@ private:
 
     /// The size of the window to merge events over in HEPUnits.
     double fWindow;
+
+    /// The offset from the TPC event time for the center of the merge window.
+    double fOffset;
 };
 #endif
