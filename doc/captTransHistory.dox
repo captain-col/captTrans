@@ -15,4 +15,28 @@ The initial implementation works for the standard output of the UBDAQ, as
 well as the so-called "nevis" format.  The library interfaces with the
 TInputManager class in captEvent.
 
+
+\section captTrans_v0r1p0_history Version 0.1.0
+
+Freeze information:
+   - Freeze Date: Wed Feb 24 18:15:28 2016
+   - Freeze User: mcgrew
+   - Freeze Host: boxer boxer 
+
+
+NEW FEATURES:
+
+* Implement converter (TmPDSInputFile) for the miniCAPTAIN photon detection
+  system.
+
+* Add precision time stamps for the ubdaq and mPDS converters.
+
+* Implement a merging converter to combine events from the tpc and pds daqs
+  into a single event.
+
+BUG FIXES
+
+* Limit the number of times that a message is printed when the detector
+  type can't be determined (to fill the TEventContext partition flags).
+
 */
