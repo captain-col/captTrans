@@ -255,28 +255,36 @@ CP::TEvent* CP::TmPDSInput::ReadEvent(Int_t n) {
     
     // Create the event.
     std::auto_ptr<CP::TEvent> newEvent(new CP::TEvent(context));
-
-    // Add the GPS time into an integer datum.
+    // Initialize the time stamp from the computer since it will always exist.
+    newEvent->SetTimeStamp(computer_secIntoEpoch, computer_nsIntoSec);
+    
+    // If it was filled, then add the GPS time into an integer datum.
+    std::time_t gpsSeconds = 0;
     if (gps_Year > 0) {
         std::auto_ptr<CP::TIntegerDatum> gpsTime(
             new CP::TIntegerDatum("gpsTime"));
         struct tm gpsOffset;
         gpsOffset.tm_year = gps_Year+96;
         gpsOffset.tm_mon = 0;
-        gpsOffset.tm_mday = 1;
+        gpsOffset.tm_mday = 0;
         gpsOffset.tm_hour = 0;
         gpsOffset.tm_min = 0;
         gpsOffset.tm_sec = 0;
         gpsOffset.tm_isdst = 0;
-        std::time_t gpsSeconds = unixMkTimeIsInsane(&gpsOffset);
+        gpsSeconds = unixMkTimeIsInsane(&gpsOffset);
         gpsSeconds += 3600*24*gps_daysIntoYear;
         gpsSeconds += gps_secIntoDay;
         gpsTime->push_back(gpsSeconds);
         gpsTime->push_back(gps_nsIntoSec);
         gpsTime->push_back(gps_ctrlFlag);
         newEvent->AddDatum(gpsTime.release());
+        // Override the event time stamp with the presumably better GPS stamp.
+        // This might introduce problems if the GPS is occasionally missing
+        // since it is offset from the computer clock by all of the missing
+        // leap seconds.
+        newEvent->SetTimeStamp(gpsSeconds,gps_nsIntoSec);
     }
-    
+
     if (nData > MAXDATA) {
         CaptError("Malformed data file");
         throw;

@@ -19,7 +19,9 @@ namespace CP {
 
 /// Attach to a miniCAPTAIN PDS DAQ file so that the photon detection system
 /// events can be read.  The raw V1720 data is stored in the pmt digit
-/// container, and the GPS time stamp is in a TIntegerDatum (second,ns). 
+/// container, and the GPS time stamp is in a TIntegerDatum (second,ns).  Be
+/// aware that the GPS time doesn't seem to take into account the leap seconds
+/// so it's offset from the computer time by more than 15 seconds!
 class CP::TmPDSInput : public TVInputFile {
 public:
     /// Open an input file. 
