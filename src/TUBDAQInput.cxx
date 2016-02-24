@@ -248,7 +248,8 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
         
     // Create the event.
     std::auto_ptr<CP::TEvent> newEvent(new CP::TEvent(context));
-
+    newEvent->SetTimeStamp(context.GetTimeStamp(), context.GetNanoseconds());
+        
     // Get the digits container, and create it if it doesn't exist.
     CP::THandle<CP::TDigitContainer> drift 
         = newEvent->Get<CP::TDigitContainer>("~/digits/drift");
