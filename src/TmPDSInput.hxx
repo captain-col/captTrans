@@ -122,7 +122,7 @@ private:
     UShort_t        gps_ctrlFlag;
 #define MAXDIGITIZER 3
 #define MAXCHANNELS 8
-#define MAXSAMPLES 1024
+#define MAXSAMPLES 4096
 #define MAXDATA MAXDIGITIZER*MAXCHANNELS*MAXSAMPLES
     UInt_t          digitizer_size[MAXDIGITIZER];
     UInt_t          digitizer_chMask[MAXDIGITIZER*MAXCHANNELS];
