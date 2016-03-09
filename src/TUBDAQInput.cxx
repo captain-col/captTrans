@@ -285,6 +285,8 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
                  channel != channels.end();
                  ++channel) {
                 int channelNum = channel->second.getChannelNumber();
+                CP::TTPCChannelId chanId(crateNum,cardNum,channelNum);
+
                 int nSamples
                     = channel->second.getChannelDataSize()/sizeof(UShort_t);
                 Char_t* samples = channel->second.getChannelDataPtr();
@@ -300,7 +302,14 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
                     nSamples = fLastSample;
                 }
 
-                CP::TTPCChannelId chanId(crateNum,cardNum,channelNum);
+                // Protect against data-mangling...
+                if (nSamples > 9596) {
+                    CaptError("Truncate digit length"
+                              << " from " << nSamples
+                              << " for " << chanId);
+                    nSamples = 9596;
+                }
+
                 // Read the ADC data.  This could be more efficient, but as
                 // long as it's not a bottle neck, I'm keeping it bog simple.
                 adc.clear();

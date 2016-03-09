@@ -49,8 +49,9 @@ void cardData::updateIOMode(uint8_t new_mode, int total_size=0){
       // std::cout << "Channel header " << std::hex << *channel_header << "  preset channel size = " << std::dec << (total_size)
       //  << " 0x" << std::hex << ((*channel_header)&0xF000) << std::dec << std::endl;
       if(((*channel_header)&0xF000)!=0x4000) {
+        std::cout << "Bad channel_header word at line " << __LINE__
+                  << " in " << __FILE__ << std::endl;
         throw std::runtime_error("Bad channel_header word.");
-          
       }
 
       if(total_size > 0){
@@ -101,8 +102,14 @@ void cardData::updateIOMode(uint8_t new_mode, int total_size=0){
         }//end while over channel data
         
         // despite code above, this can happen if you reach the end of the channel data.
-        if( (*channel_trailer)!=(0x5000 + ((*channel_header) & 0xfff)) ) 
+        if( (*channel_trailer)!=(0x5000 + ((*channel_header) & 0xfff)) ) {
+          std::cout << "Bad channel_trailer"
+                    << " at line " << __LINE__
+                    << " in " << __FILE__ << std::endl;
+#ifdef HARD_RUNTIME_ERRORS
           throw std::runtime_error("Bad channel_trailer word.");
+#endif
+        }
         
         // std::cout << "Huffman Decode: chan:" << ((*channel_header)&0xFFF) << " data_size = "  << channel_data_size/size16 << std::endl;
         // std::cout << "              header:" << std::hex << (*channel_header) << " trailer: "  << (*channel_trailer) << std::dec << std::endl;
