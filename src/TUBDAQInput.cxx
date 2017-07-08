@@ -39,7 +39,9 @@ namespace {
     class TUBDAQInputBuilder : public CP::TVInputBuilder {
     public:
         TUBDAQInputBuilder() 
-            : CP::TVInputBuilder("ubdaq", "Read a microboone DAQ file") {}
+            : CP::TVInputBuilder("ubdaq",
+                                 "Read a uboone DAQ file"
+                                 " [ubdaq(temp) to make digits temporary]" ) {}
         CP::TVInputFile* Open(const char* file) const {
             std::string args = GetArguments();
             if (args.find("(") != std::string::npos) {
@@ -57,7 +59,12 @@ namespace {
                 CaptLog("UBDAQ builder argument: " << args 
                         << " --> " << first
                         << " to " << last << " sample calibrated");
-                return new CP::TUBDAQInput(file,first,last);
+                if (args.find("temp") != std::string::npos) {
+                    return new CP::TUBDAQInput(file,first,last,true);
+                }
+                else {
+                    return new CP::TUBDAQInput(file,first,last,true);
+                }
             }
             return new CP::TUBDAQInput(file);
         }
@@ -106,8 +113,9 @@ namespace {
     }
 }
 
-CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last) 
-    : fFilename(name), fFirstSample(first), fLastSample(last) {
+CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last, bool temp) 
+    : fFilename(name), fFirstSample(first), fLastSample(last),
+      fTempDigits(temp) {
 
     if (fFilename.rfind(".gz") != std::string::npos) {
         std::ifstream *compressed
@@ -260,7 +268,8 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
             newEvent->AddDatum(new CP::TDataVector("digits"));
             dv = newEvent->Get<CP::TDataVector>("~/digits");
         }
-        dv->AddDatum(new CP::TDigitContainer("drift"));
+        if (fTempDigits) dv->AddTemporary(new CP::TDigitContainer("drift"));
+        else dv->AddDatum(new CP::TDigitContainer("drift"));
         drift = newEvent->Get<CP::TDigitContainer>("~/digits/drift");
     }
 
