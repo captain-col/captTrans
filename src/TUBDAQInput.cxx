@@ -46,24 +46,34 @@ namespace {
             std::string args = GetArguments();
             if (args.find("(") != std::string::npos) {
                 CaptLog("UBDAQ builder argument: " << args);
-                std::istringstream parse(args.substr(
-                                             args.find_first_of('(')+1));
-                int first;
+                std::string argument = args.substr(
+                    args.find_first_of('(')+1);
+                std::istringstream parse(argument);
+                int first=-1;
+                int last = -1;
                 parse >> first;
-                char sep;
-                do {
-                    parse >> sep;
-                } while (sep != ',');
-                int last;
-                parse >> last;
-                CaptLog("UBDAQ builder argument: " << args 
-                        << " --> " << first
-                        << " to " << last << " sample calibrated");
+                if (parse.good()) {
+                    char sep;
+                    do {
+                        parse >> sep;
+                    } while (sep != ',' && parse.good());
+                    parse >> last;
+                }
+                else {
+                    first = last = -1;
+                }
+                if (first > 0) {
+                    CaptLog("UBDAQ builder argument: " << args 
+                            << " --> " << first
+                            << " to " << last << " sample will be calibrated");
+                }
                 if (args.find("temp") != std::string::npos) {
+                    CaptLog("UBDAQ builder argument: " << args
+                            << " --> Digits not saved in output file");
                     return new CP::TUBDAQInput(file,first,last,true);
                 }
                 else {
-                    return new CP::TUBDAQInput(file,first,last,true);
+                    return new CP::TUBDAQInput(file,first,last,false);
                 }
             }
             return new CP::TUBDAQInput(file);
