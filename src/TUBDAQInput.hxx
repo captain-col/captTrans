@@ -27,7 +27,7 @@ public:
     /// range, but -tubdaq(2800,3800) only converts the 500 us right around
     /// the trigger time (assuming we are using a 4.5 ms sampling period and
     /// the trigger is at sample 3200.
-    TUBDAQInput(const char* fName, int first =-1, int last=-1, bool temp=false);
+    TUBDAQInput(const char* fName, int first =-1, int last=-1, int scale=-1);
     virtual ~TUBDAQInput(); 
 
     /// Return the first event in the input file.  If the file does not
@@ -77,8 +77,12 @@ private:
     /// The last sample to convert
     int fLastSample;
 
-    /// Flag that temporary digits should be used (Makes the saved file
-    /// dramatically smaller).
-    bool fTempDigits;
+    /// When the digits are flagged as temporary they are deleted from the
+    /// output event before it is saved.  That means that there isn't any way
+    /// to look at noise on the wire baselines.  To allow the raw data to be
+    /// seen, this saves the raw digits every fScaledDigitSave.  The raw
+    /// digits for the first event are always saved.  A value of -1 says to
+    /// always save the digits.
+    int fScaledDigitSave;
 };
 #endif

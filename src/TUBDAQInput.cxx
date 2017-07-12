@@ -41,16 +41,16 @@ namespace {
         TUBDAQInputBuilder() 
             : CP::TVInputBuilder("ubdaq",
                                  "Read a uboone DAQ file"
-                                 " [ubdaq(temp) to make digits temporary]" ) {}
+                                 " [ubdaq(temp[=n]) to not save digits]" ) {}
         CP::TVInputFile* Open(const char* file) const {
             std::string args = GetArguments();
             if (args.find("(") != std::string::npos) {
                 CaptLog("UBDAQ builder argument: " << args);
                 std::string argument = args.substr(
                     args.find_first_of('(')+1);
-                std::istringstream parse(argument);
                 int first=-1;
                 int last = -1;
+                std::istringstream parse(argument);
                 parse >> first;
                 if (parse.good()) {
                     char sep;
@@ -68,12 +68,20 @@ namespace {
                             << " to " << last << " sample will be calibrated");
                 }
                 if (args.find("temp") != std::string::npos) {
+                    int scaling = 200;
+                    std::size_t pos = args.find("temp=");
+                    if (pos != std::string::npos) {
+                        std::string tempArg = args.substr(pos+5);
+                        std::istringstream parseTemp(tempArg);
+                        parseTemp >> scaling;
+                    }
                     CaptLog("UBDAQ builder argument: " << args
-                            << " --> Digits not saved in output file");
-                    return new CP::TUBDAQInput(file,first,last,true);
+                            << " --> Digits scaled in output file by "
+                            << scaling);
+                    return new CP::TUBDAQInput(file,first,last,scaling);
                 }
                 else {
-                    return new CP::TUBDAQInput(file,first,last,false);
+                    return new CP::TUBDAQInput(file,first,last,-1);
                 }
             }
             return new CP::TUBDAQInput(file);
@@ -123,9 +131,9 @@ namespace {
     }
 }
 
-CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last, bool temp) 
+CP::TUBDAQInput::TUBDAQInput(const char* name, int first, int last, int scale) 
     : fFilename(name), fFirstSample(first), fLastSample(last),
-      fTempDigits(temp) {
+      fScaledDigitSave(scale) {
 
     if (fFilename.rfind(".gz") != std::string::npos) {
         std::ifstream *compressed
@@ -278,8 +286,12 @@ CP::TEvent* CP::TUBDAQInput::NextEvent(int skip) {
             newEvent->AddDatum(new CP::TDataVector("digits"));
             dv = newEvent->Get<CP::TDataVector>("~/digits");
         }
-        if (fTempDigits) dv->AddTemporary(new CP::TDigitContainer("drift"));
-        else dv->AddDatum(new CP::TDigitContainer("drift"));
+        if (0<fScaledDigitSave && 0 != (fEventsRead % fScaledDigitSave)) {
+            dv->AddTemporary(new CP::TDigitContainer("drift"));
+        }
+        else {
+            dv->AddDatum(new CP::TDigitContainer("drift"));
+        }
         drift = newEvent->Get<CP::TDigitContainer>("~/digits/drift");
     }
 
